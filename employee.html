@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Employee Directory</title>
+    <style>
+        :root {
+            --bg-color: #f4f7f6;
+            --card-bg: #ffffff;
+            --text-color: #333333;
+            --primary-color: #4a90e2;
+            --highlight-color: #fff3cd;
+            --highlight-border: #ffc107;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+        }
+
+        /* Controls Section */
+        .controls {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 30px;
+            background: var(--card-bg);
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        select,
+        button {
+            padding: 10px 15px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            outline: none;
+        }
+
+        select:focus {
+            border-color: var(--primary-color);
+        }
+
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background-color: #357abd;
+        }
+
+        /* Employee Grid Layout */
+        .employee-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        /* Employee Card Styling */
+        .card {
+            background: var(--card-bg);
+            border: 1px solid #e1e8ed;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .card h3 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+
+        .card p {
+            margin: 8px 0;
+            font-size: 14px;
+        }
+
+        .dept-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            background-color: #e2e8f0;
+        }
+
+        /* Dynamic Modifier Classes */
+        .hidden {
+            display: none !important;
+        }
+
+        .highlighted {
+            background-color: var(--highlight-color);
+            border-color: var(--highlight-border);
+            transform: translateY(-5px);
+            box-shadow: 0 6px 12px rgba(255, 193, 7, 0.2);
+        }
+
+        .highlight-btn {
+            margin-top: 12px;
+            background: transparent;
+            color: #555;
+            border: 1px solid #ccc;
+            font-size: 12px;
+            padding: 5px 10px;
+            width: 100%;
+        }
+
+        .card.highlighted .highlight-btn {
+            background: var(--highlight-border);
+            color: #333;
+            border-color: var(--highlight-border);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h1>Team Directory</h1>
+
+        <!-- 1. Controls for DOM Manipulation -->
+        <div class="controls">
+            <div>
+                <label for="deptFilter">Department: </label>
+                <select id="deptFilter">
+                    <option value="all">All Departments</option>
+                    <option value="Engineering">Engineering</option>
+                    <option value="Design">Design</option>
+                    <option value="Marketing">Marketing</option>
+                </select>
+            </div>
+            <button id="clearHighlightsBtn">Clear Highlights</button>
+        </div>
+
+        <!-- 2. Target Container for Dynamic Content Injection -->
+        <div class="employee-grid" id="employeeGrid">
+            <!-- JavaScript will inject cards here initially -->
+        </div>
+    </div>
+
+    <script>
+        // Sample Employee Dataset
+        const employees = [
+            { id: 1, name: "Alice Johnson", role: "Frontend Developer", dept: "Engineering", email: "alice@company.com" },
+            { id: 2, name: "Bob Smith", role: "UI/UX Designer", dept: "Design", email: "bob@company.com" },
+            { id: 3, name: "Charlie Brown", role: "Growth Lead", dept: "Marketing", email: "charlie@company.com" },
+            { id: 4, name: "Diana Prince", role: "DevOps Engineer", dept: "Engineering", email: "diana@company.com" },
+            { id: 5, name: "Evan Wright", role: "Brand Designer", dept: "Design", email: "evan@company.com" },
+            { id: 6, name: "Fiona Gallagher", role: "SEO Specialist", dept: "Marketing", email: "fiona@company.com" }
+        ];
+
+        // DOM Element Queries
+        const employeeGrid = document.getElementById('employeeGrid');
+        const deptFilter = document.getElementById('deptFilter');
+        const clearHighlightsBtn = document.getElementById('clearHighlightsBtn');
+
+        // --- Function: Render Cards to UI ---
+        function renderEmployees() {
+            // Content Change via innerHTML dynamically mapping the array
+            employeeGrid.innerHTML = employees.map(emp => `
+        <div class="card" data-department="${emp.dept}">
+          <h3>${emp.name}</h3>
+          <p><strong>Role:</strong> ${emp.role}</p>
+          <p><span class="dept-badge">${emp.dept}</span></p>
+          <p style="color: #666;">${emp.email}</p>
+          <button class="highlight-btn">Highlight Employee</button>
+        </div>
+      `).join('');
+
+            // Attach event listeners to the freshly created highlight buttons
+            attachHighlightListeners();
+        }
+
+        // --- Function: Filter by Department ---
+        function filterDepartments() {
+            const selectedDept = deptFilter.value;
+
+            // DOM Query: Select all generated employee card elements
+            const cards = document.querySelectorAll('.card');
+
+            cards.forEach(card => {
+                const cardDept = card.getAttribute('data-department');
+
+                // Logical check to change display content state
+                if (selectedDept === 'all' || cardDept === selectedDept) {
+                    card.classList.remove('hidden');
+                } else {
+                    card.classList.add('hidden');
+                }
+            });
+        }
+
+        // --- Function: Handle Individual Highlights ---
+        function attachHighlightListeners() {
+            // DOM Query: Grab all buttons inside the generated cards
+            const buttons = document.querySelectorAll('.highlight-btn');
+
+            buttons.forEach(button => {
+                button.addEventListener('click', (e) => {
+                    // DOM Navigation: Find the closest parent card element
+                    const card = e.target.closest('.card');
+
+                    // Toggle styling class
+                    card.classList.toggle('highlighted');
+
+                    // DOM Content Change: Swap button text based on highlight state
+                    if (card.classList.contains('highlighted')) {
+                        e.target.innerHTML = 'Un-Highlight';
+                    } else {
+                        e.target.innerHTML = 'Highlight Employee';
+                    }
+                });
+            });
+        }
+
+        // --- Function: Clear All Highlights ---
+        function clearAllHighlights() {
+            const highlightedCards = document.querySelectorAll('.card.highlighted');
+
+            highlightedCards.forEach(card => {
+                card.classList.remove('highlighted');
+                // Reset the corresponding button text inside the card
+                card.querySelector('.highlight-btn').innerHTML = 'Highlight Employee';
+            });
+        }
+
+        // --- Event Listeners Setup ---
+        deptFilter.addEventListener('change', filterDepartments);
+        clearHighlightsBtn.addEventListener('click', clearAllHighlights);
+
+        // Initial Core Application Setup
+        renderEmployees();
+    </script>
+</body>
+
+</html>
